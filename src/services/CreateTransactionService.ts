@@ -15,6 +15,23 @@ class CreateTransactionService {
   }
 
   public execute({ title, value, type }: Request): Transaction {
+    if (!title) throw Error('Title is required');
+    if (!value) throw Error('Value is required');
+    if (!type) throw Error('Type is required');
+
+    if (typeof value !== 'number') throw Error('Value must be a number.');
+
+    const balance = this.transactionsRepository.getBalance();
+    switch (type) {
+      case 'income':
+        break;
+      case 'outcome':
+        if (balance.total < value) throw Error('Insufficient funds.');
+        break;
+      default:
+        throw Error("Type must be 'outcome' or 'income'.");
+    }
+
     const transaction = this.transactionsRepository.create({
       title,
       value,
