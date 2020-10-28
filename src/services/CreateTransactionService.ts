@@ -5,6 +5,7 @@ interface Request {
   title: string;
   value: number;
   type: 'income' | 'outcome';
+  category: string;
 }
 
 class CreateTransactionService {
@@ -14,7 +15,7 @@ class CreateTransactionService {
     this.transactionsRepository = transactionsRepository;
   }
 
-  public execute({ title, value, type }: Request): Transaction {
+  public execute({ title, value, type, category }: Request): Transaction {
     if (!title) throw Error('Title is required');
     if (!value) throw Error('Value is required');
     if (!type) throw Error('Type is required');
@@ -36,6 +37,7 @@ class CreateTransactionService {
       title,
       value,
       type,
+      category,
     });
 
     return transaction;

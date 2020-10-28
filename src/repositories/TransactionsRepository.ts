@@ -10,6 +10,7 @@ interface TransactionsRepositoryDTO {
   title: string;
   value: number;
   type: 'income' | 'outcome';
+  category: string;
 }
 
 class TransactionsRepository {
@@ -52,8 +53,9 @@ class TransactionsRepository {
     title,
     value,
     type,
+    category,
   }: TransactionsRepositoryDTO): Transaction {
-    const transaction = new Transaction({ title, value, type });
+    const transaction = new Transaction({ title, value, type, category });
 
     this.transactions.push(transaction);
 
