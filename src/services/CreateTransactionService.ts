@@ -1,28 +1,33 @@
+import { getCustomRepository } from 'typeorm';
+
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
+import Category from '../models/Category';
 
 interface Request {
   title: string;
   value: number;
   type: 'income' | 'outcome';
-  category: string;
+  category: Category;
 }
 
 class CreateTransactionService {
-  private transactionsRepository: TransactionsRepository;
+  public async execute({
+    title,
+    value,
+    type,
+    category,
+  }: Request): Promise<Transaction> {
+    const transactionsRepository = getCustomRepository(TransactionsRepository);
 
-  constructor(transactionsRepository: TransactionsRepository) {
-    this.transactionsRepository = transactionsRepository;
-  }
-
-  public execute({ title, value, type, category }: Request): Transaction {
     if (!title) throw Error('Title is required');
     if (!value) throw Error('Value is required');
     if (!type) throw Error('Type is required');
+    if (!category) throw Error('Category is required');
 
     if (typeof value !== 'number') throw Error('Value must be a number.');
 
-    const balance = this.transactionsRepository.getBalance();
+    const balance = await transactionsRepository.getBalance();
     switch (type) {
       case 'income':
         break;
@@ -33,12 +38,14 @@ class CreateTransactionService {
         throw Error("Type must be 'outcome' or 'income'.");
     }
 
-    const transaction = this.transactionsRepository.create({
+    const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category,
+      category_id: category.id,
     });
+
+    await transactionsRepository.save(transaction);
 
     return transaction;
   }
