@@ -1,42 +1,48 @@
 import { Router } from 'express';
+import { getCustomRepository } from 'typeorm';
 
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import CreateTransactionService from '../services/CreateTransactionService';
+import CreateCategoryService from '../services/CreateCategoryService';
 
 const transactionRouter = Router();
 
-const transactionsRepository = new TransactionsRepository();
+transactionRouter.get('/', async (request, response) => {
+  const transactionsRepository = getCustomRepository(TransactionsRepository);
 
-transactionRouter.get('/', (request, response) => {
-  try {
-    const transactions = transactionsRepository.all();
-    const balance = transactionsRepository.getBalance();
+  const transactions = await transactionsRepository.find({
+    relations: ['category'],
+  });
+  const balance = await transactionsRepository.getBalance();
 
-    return response.json({ transactions, balance });
-  } catch (err) {
-    return response.status(400).json({ error: err.message });
-  }
+  return response.json({ transactions, balance });
 });
 
-transactionRouter.post('/', (request, response) => {
-  try {
-    const { title, value, type, category } = request.body;
+transactionRouter.post('/', async (request, response) => {
+  const { title, value, type, category: categoryTitle } = request.body;
+  const createTransaction = new CreateTransactionService();
 
-    const createTransaction = new CreateTransactionService(
-      transactionsRepository,
-    );
+  const createCategory = new CreateCategoryService();
+  const category = await createCategory.execute({ title: categoryTitle });
 
-    const transaction = createTransaction.execute({
-      title,
-      value,
-      type,
-      category,
-    });
+  const transaction = await createTransaction.execute({
+    title,
+    value,
+    type,
+    category,
+  });
 
-    return response.json(transaction);
-  } catch (err) {
-    return response.status(400).json({ error: err.message });
-  }
+  return response.json(transaction);
+});
+
+transactionRouter.delete('/:id', async (request, response) => {
+  const id = request.params;
+
+  const transactionsRepository = getCustomRepository(TransactionsRepository);
+
+  await transactionsRepository.delete(id);
+
+  return response.send();
 });
 
 export default transactionRouter;
