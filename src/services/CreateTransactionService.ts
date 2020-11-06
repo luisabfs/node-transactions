@@ -1,14 +1,17 @@
 import { getCustomRepository } from 'typeorm';
 
+import CreateCategoryService from './CreateCategoryService';
+
 import TransactionsRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
-import Category from '../models/Category';
+
+import AppError from '../errors/AppError';
 
 interface Request {
   title: string;
   value: number;
   type: 'income' | 'outcome';
-  category: Category;
+  categoryTitle: string;
 }
 
 class CreateTransactionService {
@@ -16,27 +19,31 @@ class CreateTransactionService {
     title,
     value,
     type,
-    category,
+    categoryTitle,
   }: Request): Promise<Transaction> {
     const transactionsRepository = getCustomRepository(TransactionsRepository);
 
-    if (!title) throw Error('Title is required');
-    if (!value) throw Error('Value is required');
-    if (!type) throw Error('Type is required');
-    if (!category) throw Error('Category is required');
+    if (!title) throw new AppError('Title is required');
+    if (!value) throw new AppError('Value is required');
+    if (!type) throw new AppError('Type is required');
+    if (!categoryTitle) throw new AppError('Category is required');
 
-    if (typeof value !== 'number') throw Error('Value must be a number.');
+    if (typeof value !== 'number')
+      throw new AppError('Value must be a number.');
 
     const balance = await transactionsRepository.getBalance();
     switch (type) {
       case 'income':
         break;
       case 'outcome':
-        if (balance.total < value) throw Error('Insufficient funds.');
+        if (balance.total < value) throw new AppError('Insufficient funds.');
         break;
       default:
-        throw Error("Type must be 'outcome' or 'income'.");
+        throw new AppError("Type must be 'outcome' or 'income'.");
     }
+
+    const createCategory = new CreateCategoryService();
+    const category = await createCategory.execute({ title: categoryTitle });
 
     const transaction = transactionsRepository.create({
       title,
