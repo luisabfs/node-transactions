@@ -23,23 +23,10 @@ class CreateTransactionService {
   }: Request): Promise<Transaction> {
     const transactionsRepository = getCustomRepository(TransactionsRepository);
 
-    if (!title) throw new AppError('Title is required');
-    if (!value) throw new AppError('Value is required');
-    if (!type) throw new AppError('Type is required');
-    if (!categoryTitle) throw new AppError('Category is required');
+    const { total } = await transactionsRepository.getBalance();
 
-    if (typeof value !== 'number')
-      throw new AppError('Value must be a number.');
-
-    const balance = await transactionsRepository.getBalance();
-    switch (type) {
-      case 'income':
-        break;
-      case 'outcome':
-        if (balance.total < value) throw new AppError('Insufficient funds.');
-        break;
-      default:
-        throw new AppError("Type must be 'outcome' or 'income'.");
+    if (type === 'outcome' && total < value) {
+      throw new AppError('Insufficient funds.');
     }
 
     const createCategory = new CreateCategoryService();
