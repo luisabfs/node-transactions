@@ -8,44 +8,46 @@ import Transaction from '../models/Transaction';
 import CreateTransactionService from './CreateTransactionService';
 
 const transactions: Array<Transaction> = [];
-let count = 0;
+
+interface Request {
+  title: string;
+  value: number;
+  type: 'income' | 'outcome';
+  categoryTitle: string;
+}
 
 class ImportTransactionsService {
   public async execute(filename: string): Promise<Array<Transaction>> {
-    fs.createReadStream(path.join(uploadConfig.directory, filename))
-      .pipe(csv())
-      .on('data', async row => {
-        // eslint-disable-next-line no-plusplus
-        count++;
+    const csvData = (await this.getData(filename)) as Array<Request>;
 
-        if (count > 1) {
-          const createTransaction = new CreateTransactionService();
+    const createTransaction = new CreateTransactionService();
 
-          await createTransaction.execute({
-            title: row[0],
-            type: row[1],
-            value: +row[2],
-            categoryTitle: row[3],
-          });
-          transactions.push(row);
-        }
-      })
-      .on('end', async () => console.table(transactions));
-
-    // const createTransaction = new CreateTransactionService();
-    // console.log('out', transactions);
-    // transactions.map(
-    //   async (row): Promise<Array<Transaction>> => {
-    // const transaction = await createTransaction.execute({
-    //   title: row[0],
-    //   type: row[1],
-    //   value: +row[2],
-    //   categoryTitle: row[3],
-    // });
-    //   },
-    // );
+    // eslint-disable-next-line no-restricted-syntax
+    for (const csvRow of csvData) {
+      // eslint-disable-next-line no-await-in-loop
+      const transaction = await createTransaction.execute(csvRow);
+      transactions.push(transaction);
+    }
 
     return transactions;
+  }
+
+  private async getData(filename: string): Promise<unknown> {
+    const csvData: Array<Request> = [];
+
+    return new Promise((resolve, reject) => {
+      fs.createReadStream(path.join(uploadConfig.directory, filename))
+        .on('error', error => {
+          console.error(error);
+          reject(error);
+        })
+        .pipe(csv({ fromLine: 2 }))
+        .on('data', async row => {
+          const [title, type, value, categoryTitle] = row;
+          csvData.push({ title, type, value, categoryTitle });
+        })
+        .on('end', async () => resolve(csvData));
+    });
   }
 }
 
