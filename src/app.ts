@@ -2,6 +2,7 @@ import 'express-async-errors';
 import 'reflect-metadata';
 import 'dotenv/config';
 
+import cors from 'cors';
 import express, { Request, Response, NextFunction } from 'express';
 import routes from './routes';
 
@@ -13,6 +14,7 @@ createConnection();
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 app.use(routes);
 
 app.use(
